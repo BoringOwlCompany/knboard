@@ -16,15 +16,16 @@ import { Button } from "@material-ui/core";
 import { PRIMARY } from "utils/colors";
 import { addColumn } from "features/column/ColumnSlice";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faColumns, faCog } from "@fortawesome/free-solid-svg-icons";
+import { faPlus, faPen } from "@fortawesome/free-solid-svg-icons";
 import { setDialogOpen } from "features/label/LabelSlice";
 import LabelDialog from "features/label/LabelDialog";
 import { useParams } from "react-router-dom";
 import {
   selectAllMembers,
-  setMemberListOpen
+  setMemberListOpen,
 } from "features/member/MemberSlice";
 import MemberListDialog from "features/member/MemberList";
+import MemberFilter from "features/member/MemberFilter";
 
 const Container = styled.div`
   height: ${barHeight}px;
@@ -109,7 +110,7 @@ const BoardBar = () => {
               }
             }}
           >
-            {members.map(member => (
+            {members.map((member) => (
               <MemberDetail
                 key={member.id}
                 member={member}
@@ -118,6 +119,7 @@ const BoardBar = () => {
             ))}
           </AvatarGroup>
           {boardOwner && <MemberInvite boardId={detail.id} />}
+          <MemberFilter boardId={detail.id} />
         </Left>
         <Right>
           <Button
@@ -127,7 +129,7 @@ const BoardBar = () => {
               margin-right: 0.5rem;
             `}
             onClick={handleEditLabels}
-            startIcon={<FontAwesomeIcon icon={faCog} />}
+            startIcon={<FontAwesomeIcon icon={faPen} />}
             data-testid="open-labels-dialog"
           >
             Edit labels
@@ -138,7 +140,7 @@ const BoardBar = () => {
               ${buttonStyles}
             `}
             onClick={handleAddColumn}
-            startIcon={<FontAwesomeIcon icon={faColumns} />}
+            startIcon={<FontAwesomeIcon icon={faPlus} />}
             data-testid="add-col"
           >
             Add List

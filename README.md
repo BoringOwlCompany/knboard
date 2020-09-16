@@ -42,6 +42,7 @@
 - Blazing fast Nginx
 - Dockerized production setup
 - Continuous integration with CircleCI
+- Server setup and deployment with Ansible
 
 ## Motivation 🎯
 
@@ -61,7 +62,7 @@
 
 ## Development setup 🛠
 
-Steps to locally setup development after cloning the project (only tested on MacOS).
+Steps to locally setup development after cloning the project.
 
 Note: `docker-compose` is currently only used for production.
 
@@ -86,6 +87,34 @@ python manage.py createsuperuser --username admin --email a@a.com
 python manage.py loaddata avatars
 python manage.py runserver
 ```
+
+```
+python3 -m venv .venv
+source .venv/bin/activate
+
+----- For Windows----
+virtualenv .venv
+.venv/scripts/activate
+---------------------
+
+pip install -r requirements/local.txt
+
+#if failed to import from psycopg:
+pip install psycopg2-binary
+
+docker-compose -f services.yml up --d
+
+#if postgres is installed locally, stop its service or uninstall it
+python manage.py migrate --settings=config.settings.local
+python manage.py createsuperuser --username admin --email a@a.com --settings=config.settings.local
+python manage.py loaddata avatars --settings=config.settings.local
+python manage.py runserver --settings=config.settings.local
+```
+
+Troubleshooting running the project:
+
+- Make sure PostgreSQL container is running
+- Make sure Python virtual environment is activated
 
 The Django API is now accessible at `http://localhost:8000/api/`
 with the admin backend available at `http://localhost:8000/backdoor/`
@@ -113,29 +142,45 @@ React app is now accessible at `http://localhost:3000`
 ### Quality tools
 
 Check formatting & quality with eslint
+
 ```sh
 yarn lint
 ```
 
 Run Jest tests
+
 ```sh
 yarn test
 ```
 
 Run Cypress tests
+
 ```sh
 yarn cypress run
 ```
 
+Debug Cypress tests
+
+```sh
+npx cypress open
+```
+
 Run Python tests
+
 ```sh
 python -m pytest
 ```
 
 Check formatting with Black
+
 ```sh
 black --exclude .venv .
 ```
+
+## Articles
+
+- [Full Guide to Testing Javascript & React](https://www.rrebase.com/posts/full-guide-to-testing-javascript-react)
+- [Deploying knboard to DigitalOcean with Ansible](https://www.rrebase.com/posts/deploying-knboard-to-digitalocean-with-ansible)
 
 ## License
 

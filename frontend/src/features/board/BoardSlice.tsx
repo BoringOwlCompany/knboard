@@ -25,7 +25,7 @@ export const initialState: InitialState = {
   createLoading: false,
   createError: null,
   detailLoading: false,
-  detailError: undefined
+  detailError: undefined,
 };
 
 interface ColumnsResponse extends IColumn {
@@ -35,6 +35,11 @@ interface ColumnsResponse extends IColumn {
 interface BoardDetailResponse extends Board {
   columns: ColumnsResponse[];
   labels: Label[];
+}
+
+export interface BoardSearchQuery {
+  boardId: string | number;
+  assigneeIds?: number[];
 }
 
 export const fetchAllBoards = createAsyncThunk<Board[]>(
@@ -47,13 +52,18 @@ export const fetchAllBoards = createAsyncThunk<Board[]>(
 
 export const fetchBoardById = createAsyncThunk<
   BoardDetailResponse,
-  string,
+  BoardSearchQuery,
   {
     rejectValue: string;
   }
->("board/fetchByIdStatus", async (id, { rejectWithValue }) => {
+>("board/fetchByIdStatus", async (boardSearchQuery, { rejectWithValue }) => {
   try {
-    const response = await api.get(`${API_BOARDS}${id}/`);
+    const queryString = boardSearchQuery.assigneeIds
+      ? `?assignees=${boardSearchQuery.assigneeIds}`
+      : "";
+    const response = await api.get(
+      `${API_BOARDS}${boardSearchQuery.boardId}/${queryString}`
+    );
     return response.data;
   } catch (err) {
     return rejectWithValue(err.message);
@@ -62,7 +72,7 @@ export const fetchBoardById = createAsyncThunk<
 
 export const createBoard = createAsyncThunk<Board, string>(
   "board/createBoardStatus",
-  async name => {
+  async (name) => {
     const response = await api.post(API_BOARDS, { name });
     return response.data;
   }
@@ -74,10 +84,10 @@ export const slice = createSlice({
   reducers: {
     setCreateDialogOpen: (state, action: PayloadAction<boolean>) => {
       state.createDialogOpen = action.payload;
-    }
+    },
   },
-  extraReducers: builder => {
-    builder.addCase(fetchAllBoards.pending, state => {
+  extraReducers: (builder) => {
+    builder.addCase(fetchAllBoards.pending, (state) => {
       state.fetchLoading = true;
       state.fetchError = null;
       state.detailError = undefined;
@@ -91,7 +101,7 @@ export const slice = createSlice({
       state.fetchError = action.payload as string;
       state.fetchLoading = false;
     });
-    builder.addCase(fetchBoardById.pending, state => {
+    builder.addCase(fetchBoardById.pending, (state) => {
       state.detailLoading = true;
     });
     builder.addCase(fetchBoardById.fulfilled, (state, action) => {
@@ -104,7 +114,7 @@ export const slice = createSlice({
       state.detailError = action.payload;
       state.detailLoading = false;
     });
-    builder.addCase(createBoard.pending, state => {
+    builder.addCase(createBoard.pending, (state) => {
       state.createLoading = true;
     });
     builder.addCase(createBoard.fulfilled, (state, action) => {
@@ -117,11 +127,11 @@ export const slice = createSlice({
       state.createError = action.payload as string;
       state.createLoading = false;
     });
-    builder.addCase(logout.fulfilled, state => {
+    builder.addCase(logout.fulfilled, (state) => {
       state.all = [];
       state.detail = null;
     });
-  }
+  },
 });
 
 export const { setCreateDialogOpen } = slice.actions;

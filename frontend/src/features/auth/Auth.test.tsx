@@ -4,24 +4,37 @@ import { screen, fireEvent, act, waitFor } from "@testing-library/react";
 import {
   renderWithProviders,
   axiosMock,
-  rootInitialState
+  rootInitialState,
 } from "utils/testHelpers";
 import Auth from "./Auth";
-import { API_LOGIN, API_REGISTER, API_GUEST_REGISTER } from "api";
+import {
+  API_LOGIN,
+  API_REGISTER,
+  API_GUEST_REGISTER,
+  API_AUTH_SETUP,
+} from "api";
 import authReducer, {
   login,
   register,
   clearErrors,
   logout,
-  guestRegister
+  guestRegister,
 } from "./AuthSlice";
-import { User } from "types";
+import { User, AuthSetup } from "types";
 
 export const steveAuthUser: User = {
   id: 1,
   username: "steve",
-  photo_url: null
+  photo_url: null,
 };
+
+const authSetup: AuthSetup = {
+  ALLOW_GUEST_ACCESS: false,
+};
+
+beforeEach(() => {
+  axiosMock.onGet(API_AUTH_SETUP).reply(200, authSetup);
+});
 
 it("should have Knboard text", async () => {
   renderWithProviders(<Auth />);
@@ -41,10 +54,10 @@ it("should login", async () => {
     const usernameInput = await screen.findByLabelText("Username");
 
     fireEvent.change(usernameInput, {
-      target: { value: username }
+      target: { value: username },
     });
     fireEvent.change(screen.getByLabelText("Password"), {
-      target: { value: password }
+      target: { value: password },
     });
     fireEvent.click(screen.getByTestId("submit-login-btn"));
   });
@@ -64,8 +77,8 @@ it("should show login api errors", async () => {
     auth: {
       ...rootInitialState.auth,
       // eslint-disable-next-line @typescript-eslint/camelcase
-      loginErrors: { non_field_errors: [errorMsg] }
-    }
+      loginErrors: { non_field_errors: [errorMsg] },
+    },
   });
 
   await act(async () => {
@@ -86,7 +99,7 @@ it("should register", async () => {
     username,
     email,
     password1: password,
-    password2: password
+    password2: password,
   };
 
   axiosMock.onPost(API_REGISTER).reply(201);
@@ -97,16 +110,16 @@ it("should register", async () => {
     const usernameInput = await screen.findByLabelText("Username");
 
     fireEvent.change(usernameInput, {
-      target: { value: username }
+      target: { value: username },
     });
     fireEvent.change(screen.getByLabelText("Email"), {
-      target: { value: email }
+      target: { value: email },
     });
     fireEvent.change(screen.getByLabelText("Password"), {
-      target: { value: password }
+      target: { value: password },
     });
     fireEvent.change(screen.getByLabelText("Confirm Password"), {
-      target: { value: password }
+      target: { value: password },
     });
     fireEvent.click(screen.getByTestId("submit-register-btn"));
   });
@@ -126,8 +139,8 @@ it("should show register api errors", async () => {
     auth: {
       ...rootInitialState.auth,
       // eslint-disable-next-line @typescript-eslint/camelcase
-      registerErrors: { non_field_errors: [errorMsg] }
-    }
+      registerErrors: { non_field_errors: [errorMsg] },
+    },
   });
 
   await act(async () => {
@@ -140,17 +153,29 @@ it("should show register api errors", async () => {
   expect(mockStore.getActions()[0].type === clearErrors.type);
 });
 
+it("should not see enter as guest if the feature isn't enabled", async () => {
+  axiosMock
+    .onGet(API_AUTH_SETUP)
+    .reply(200, { ...authSetup, ALLOW_GUEST_ACCESS: false });
+  renderWithProviders(<Auth />);
+  expect(screen.queryByText(/Enter as a guest/i)).toBeNull();
+});
+
 it("should enter as guest", async () => {
+  axiosMock
+    .onGet(API_AUTH_SETUP)
+    .reply(200, { ...authSetup, ALLOW_GUEST_ACCESS: true });
   axiosMock.onPost(API_GUEST_REGISTER).reply(201, steveAuthUser);
   const { getActionsTypes } = renderWithProviders(<Auth />);
-  fireEvent.click(screen.getByText(/Enter as a guest/i));
+
+  await waitFor(() => fireEvent.click(screen.getByText(/Enter as a guest/i)));
 
   await waitFor(() =>
     expect(getActionsTypes().includes(guestRegister.fulfilled.type)).toBe(true)
   );
   expect(getActionsTypes()).toEqual([
     guestRegister.pending.type,
-    guestRegister.fulfilled.type
+    guestRegister.fulfilled.type,
   ]);
 });
 
@@ -168,12 +193,12 @@ describe("AuthSlice", () => {
     const initial = {
       ...rootInitialState.auth,
       loginErrors,
-      registerErrors
+      registerErrors,
     };
     const expected = {
       ...rootInitialState.auth,
       loginErrors: undefined,
-      registerErrors: undefined
+      registerErrors: undefined,
     };
 
     expect(authReducer(initial, { type: clearErrors.type })).toEqual(expected);
@@ -183,7 +208,7 @@ describe("AuthSlice", () => {
     const initial = rootInitialState.auth;
     const result = {
       ...rootInitialState.auth,
-      loginLoading: true
+      loginLoading: true,
     };
 
     expect(authReducer(initial, { type: login.pending.type })).toEqual(result);
@@ -194,19 +219,19 @@ describe("AuthSlice", () => {
       ...rootInitialState.auth,
       user: null,
       loginLoading: true,
-      loginErrors
+      loginErrors,
     };
     const result = {
       ...rootInitialState.auth,
       user: steveAuthUser,
       loginLoading: false,
-      loginErrors: undefined
+      loginErrors: undefined,
     };
 
     expect(
       authReducer(initial, {
         type: login.fulfilled.type,
-        payload: steveAuthUser
+        payload: steveAuthUser,
       })
     ).toEqual(result);
   });
@@ -215,18 +240,18 @@ describe("AuthSlice", () => {
     const initial = {
       ...rootInitialState.auth,
       loginLoading: true,
-      loginErrors: undefined
+      loginErrors: undefined,
     };
     const result = {
       ...rootInitialState.auth,
       loginLoading: false,
-      loginErrors
+      loginErrors,
     };
 
     expect(
       authReducer(initial, {
         type: login.rejected.type,
-        payload: loginErrors
+        payload: loginErrors,
       })
     ).toEqual(result);
   });
@@ -234,11 +259,11 @@ describe("AuthSlice", () => {
   it("should set user to null on fulfilled and rejected logout", () => {
     const initial = {
       ...rootInitialState.auth,
-      user: steveAuthUser
+      user: steveAuthUser,
     };
     const result = {
       ...rootInitialState.auth,
-      user: null
+      user: null,
     };
 
     expect(authReducer(initial, { type: logout.fulfilled.type })).toEqual(
@@ -253,18 +278,18 @@ describe("AuthSlice", () => {
     const initial = {
       ...rootInitialState.auth,
       user: null,
-      registerErrors
+      registerErrors,
     };
     const result = {
       ...rootInitialState.auth,
       user: steveAuthUser,
-      registerErrors: undefined
+      registerErrors: undefined,
     };
 
     expect(
       authReducer(initial, {
         type: register.fulfilled.type,
-        payload: steveAuthUser
+        payload: steveAuthUser,
       })
     ).toEqual(result);
   });
@@ -272,17 +297,17 @@ describe("AuthSlice", () => {
   it("should set error on register rejected", () => {
     const initial = {
       ...rootInitialState.auth,
-      registerErrors: undefined
+      registerErrors: undefined,
     };
     const result = {
       ...rootInitialState.auth,
-      registerErrors
+      registerErrors,
     };
 
     expect(
       authReducer(initial, {
         type: register.rejected.type,
-        payload: registerErrors
+        payload: registerErrors,
       })
     ).toEqual(result);
   });
@@ -291,13 +316,13 @@ describe("AuthSlice", () => {
     const initial = rootInitialState.auth;
     const result = {
       ...rootInitialState.auth,
-      user: steveAuthUser
+      user: steveAuthUser,
     };
 
     expect(
       authReducer(initial, {
         type: guestRegister.fulfilled.type,
-        payload: steveAuthUser
+        payload: steveAuthUser,
       })
     ).toEqual(result);
   });
